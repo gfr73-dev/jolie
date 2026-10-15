@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Pedido{% endblock %}
+
+{% block content %}
+{% set form_data = form_data or {} %}
+<h1 class="h3 mb-3">Novo Pedido</h1>
+
+<form method="post" id="requestForm" class="needs-validation">
+
+  <div class="card mb-3">
+    <div class="card-header fw-semibold">Conta e dados AS400</div>
+
+    <div class="card-body row g-3">
+
+      <div class="col-md-3">
+        <label class="form-label">Conta</label>
+
+        <div class="input-group">
+          <input
+            class="form-control"
+            name="account"
+            id="account"
+            maxlength="8"
+            pattern="\d{8}"
+            value="{{ form_data.get('account', '') }}"
+            required
+          >
+
+          <button
+            class="btn btn-outline-primary"
+            type="button"
+            id="lookupBtn"
+          >
+            Actualizar Dados
+          </button>
+        </div>
+
+        <div class="form-text">
+          8 dígitos numéricos. A consulta ao AS400 só é feita se a máscara
+          estiver válida.
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Nome</label>
+
+        <input
+          class="form-control bg-light"
+          name="name"
+          id="name"
+          value="{{ form_data.get('name', '') }}"
+          readonly
+        >
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label">CCC</label>
+
+        <input
+          class="form-control"
+          name="ccc"
+          value="{{ form_data.get('ccc', '') }}"
+        >
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Morada 1</label>
+
+        <input
+          class="form-control bg-light"
+          name="address1"
+          id="address1"
+          value="{{ form_data.get('address1', '') }}"
+          readonly
+        >
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Morada 2</label>
+
+        <input
+          class="form-control bg-light"
+          name="address2"
+          id="address2"
+          value="{{ form_data.get('address2', '') }}"
+          readonly
+        >
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label">Código Postal</label>
+
+        <input
+          class="form-control bg-light"
+          name="zip"
+          id="zip"
+          value="{{ form_data.get('zip', '') }}"
+          readonly
+        >
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">Cidade</label>
+
+        <input
+          class="form-control bg-light"
+          name="city"
+          id="city"
+          value="{{ form_data.get('city', '') }}"
+          readonly
+        >
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">ODBC</label>
+
+        <input
+          class="form-control bg-light"
+          name="no_values_from_odbc"
+          id="no_values_from_odbc"
+          value="{{ form_data.get('no_values_from_odbc', '') }}"
+          readonly
+        >
+      </div>
+
+    </div>
+  </div>
+
+
+  <div class="card mb-3">
+    <div class="card-header fw-semibold">2. Contactos e agenda</div>
+
+    <div class="card-body row g-3">
+
+      <div class="col-md-3">
+        <label class="form-label">Telefone</label>
+
+        <input
+          class="form-control"
+          name="phn"
+          value="{{ form_data.get('phn', '') }}"
+          required
+        >
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label">Pessoa de Contacto</label>
+
+        <input
+          class="form-control"
+          name="contact"
+          value="{{ form_data.get('contact', '') }}"
+          required
+        >
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label">Email</label>
+
+        <input
+          class="form-control"
+          name="email"
+          type="email"
+          value="{{ form_data.get('email', '') }}"
+        >
+      </div>
+
+      <div class="col-md-3"></div>
+
+      <div class="col-md-3">
+        <label class="form-label">Data Agendada</label>
+
+        <input
+          class="form-control"
+          name="date_schedule"
+          type="date"
+          value="{{ form_data.get('date_schedule', '') }}"
+        >
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label">Hora Agendada</label>
+
+        <input
+          class="form-control"
+          name="time_schedule"
+          type="time"
+          value="{{ form_data.get('time_schedule', '') }}"
+        >
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label">Data Instalação</label>
+
+        <input
+          class="form-control"
+          name="install_date"
+          type="date"
+          value="{{ form_data.get('install_date', '') }}"
+        >
+      </div>
+
+    </div>
+  </div>
+
+
+  <div class="card mb-3">
+    <div class="card-header fw-semibold">3. Instalação</div>
+
+    <div class="card-body row g-3">
+
+      <div class="col-md-4">
+        <label class="form-label">Tipo de Instalação / Impressora</label>
+
+        <select
+          class="form-select"
+          name="installation_type_id"
+          required
+        >
+          <option value="">Tipo de Impressora</option>
+
+          {% for it in installation_types %}
+          <option
+            value="{{ it.id }}"
+            {% if form_data.get('installation_type_id') == it.id|string %}
+              selected
+            {% endif %}
+          >
+            {{ it.label }}{% if it.requires_validation %} | requer validação{% endif %}
+          </option>
+          {% endfor %}
+
+        </select>
+      </div>
+
+
+      <div class="col-md-4">
+        <label class="form-label">Gestor de Conta</label>
+
+        <select
+          class="form-select"
+          name="account_manager_id"
+          required
+        >
+          <option value="">Escolha o Gestor</option>
+
+          {% for m in account_managers %}
+          <option
+            value="{{ m.id }}"
+            {% if form_data.get('account_manager_id') == m.id|string %}
+              selected
+            {% endif %}
+          >
+            {{ m.account_manager }}
+          </option>
+          {% endfor %}
+
+        </select>
+      </div>
+
+
+      <div class="col-md-4">
+        <label class="form-label">Técnico IT instalação</label>
+
+        <select
+          class="form-select"
+          name="account_it_id"
+          required
+        >
+          <option value="">Escolha Técnico</option>
+
+          {% for t in techs %}
+          <option
+            value="{{ t.id }}"
+            {% if form_data.get('account_it_id') == t.id|string %}
+              selected
+            {% endif %}
+          >
+            {{ t.tech_user_name }}
+          </option>
+          {% endfor %}
+
+        </select>
+      </div>
+
+
+      <div class="col-md-2">
+        <label class="form-label">Envios por dia</label>
+
+        <input
+          class="form-control"
+          name="envios_dia"
+          value="{{ form_data.get('envios_dia', '') }}"
+          required
+        >
+      </div>
+
+
+      <div class="col-md-2">
+        <label class="form-label">Quantidade de impressoras</label>
+
+        <select
+          class="form-select"
+          name="printer_requested_qty"
+        >
+
+          {% for q in quantities %}
+          <option
+            value="{{ q }}"
+            {% if form_data.get('printer_requested_qty') == q|string %}
+              selected
+            {% endif %}
+          >
+            {{ q }}
+          </option>
+          {% endfor %}
+
+        </select>
+      </div>
+
+    </div>
+  </div>
+
+
+  <div class="d-flex gap-2">
+
+    <button
+      id="gravarBtn"
+      class="btn btn-primary"
+      type="submit"
+    >
+      Gravar Pedido
+    </button>
+
+    <a
+      id="cancelarBtn"
+      class="btn btn-outline-secondary"
+      href="{{ url_for('requests.index') }}"
+    >
+      Cancelar
+    </a>
+
+  </div>
+
+
+  <script>
+    document.getElementById("requestForm").addEventListener("submit", function () {
+
+      document.getElementById("gravarBtn").disabled = true;
+
+      const cancelar = document.getElementById("cancelarBtn");
+
+      cancelar.classList.add("disabled");
+      cancelar.style.pointerEvents = "none";
+
+      document.getElementById("gravarBtn").textContent = "A gravar...";
+    });
+  </script>
+
+</form>
+
+{% endblock %}

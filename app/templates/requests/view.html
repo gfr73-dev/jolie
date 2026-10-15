@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Pedido {{ req.account }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Pedido {{ req.account }} - {{ req.name }}</h1>
+  <a class="btn btn-outline-secondary" href="{{ url_for('requests.index') }}">Voltar</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold">Detalhes do Pedido</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-3">Conta</dt>
+          <dd class="col-sm-9">{{ req.account }}</dd>
+
+          <dt class="col-sm-3">Cliente</dt>
+          <dd class="col-sm-9">{{ req.name }}</dd>
+
+          <dt class="col-sm-3">Morada</dt>
+          <dd class="col-sm-9">{{ req.address1 }} <br> {{ req.address2 }} <br> {{ req.zip }} {{ req.city }}</dd>
+
+          <dt class="col-sm-3">Contacto</dt>
+          <dd class="col-sm-9">{{ req.contact }} | {{ req.phn }} | {{ req.email or '' }}</dd>
+
+          <dt class="col-sm-3">Gestor</dt>
+          <dd class="col-sm-9">{{ req.account_manager }} <> {{ req.account_manager_email or '' }}</dd>
+
+          <dt class="col-sm-3">Técnico IT</dt>
+          <dd class="col-sm-9">{{ req.account_it }} {{ req.account_it_email or '' }}</dd>
+
+          <dt class="col-sm-3">Instalação</dt>
+          <dd class="col-sm-9">{{ req.install_type }} > {{ req.printer_requested }} > Qtd {{ req.printer_requested_qty }}</dd>
+
+          <dt class="col-sm-3">Status</dt>
+          <dd class="col-sm-9">
+            {% if req.status == 'AGUARDA RECOLHA IMPRESSORA' %}
+              <span class="badge text-bg-info">{{ req.status }}</span>
+            {% elif req.status == 'IMPRESSORA RECOLHIDA' %}
+              <span class="badge text-bg-danger">{{ req.status }}</span>
+            {% else %}
+              <span class="badge text-bg-secondary">{{ req.status }}</span>
+            {% endif %}
+          </dd>
+
+          <dt class="col-sm-3">Validação Impressora</dt>
+          <dd class="col-sm-9">{{ req.validation_label() }}</dd>
+
+          <dt class="col-sm-3">Observações</dt>
+          <dd class="col-sm-9">{{ req.obs_migracao or '' }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    {% if g.user.is_can_register or g.user.is_admin or g.user.is_master_admin %}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">Recolha de Impressora</div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('requests.request_printer_pickup', request_id=req.id) }}"
+              onsubmit="return confirm('Confirma que pretende solicitar a recolha desta impressora?');">
+          <input type="hidden" name="confirm" value="yes">
+          <button class="btn btn-warning" type="submit">Recolher Impressora</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+    {% if g.user.is_admin %}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">Administração do Pedido</div>
+      <div class="card-body d-flex flex-column gap-2">
+        <form method="post" action="{{ url_for('requests.confirm_printer_collected', request_id=req.id) }}"
+              onsubmit="return confirm('Confirma que a impressora foi recolhida?');">
+          <input type="hidden" name="confirm" value="yes">
+          <button class="btn btn-danger" type="submit">Impressora Recolhida</button>
+        </form>
+        <form method="post" action="{{ url_for('requests.move_to_history', request_id=req.id) }}"
+              onsubmit="return confirm('Mover este pedido para o histórico?');">
+          <button class="btn btn-outline-secondary" type="submit">Mover para Historico</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">Atualizar Pedido</div>
+      <div class="card-body">
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Status</label>
+            <select class="form-select" name="status" {% if not g.user.is_admin %}disabled{% endif %}>
+              {% for st in statuses %}
+              <option value="{{ st.status }}" {% if req.status == st.status %}selected{% endif %}>{{ st.status }}</option>
+              {% endfor %}
+            </select>
+            {% if not g.user.is_admin %}
+            <div class="form-text">Apenas administradores podem alterar o status.</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Data Agendamento</label>
+            <input class="form-control" name="date_schedule" type="date" value="{{ req.date_schedule.isoformat() if req.date_schedule else '' }}" {% if not g.user.is_admin %}readonly{% endif %}>
+          </div>
+            
+            <div class="mb-3">
+            <label class="form-label">Hora Agendamento</label>
+            <input class="form-control" name="time_schedule" type="time" value="{{ req.time_schedule.strftime('%H:%M') if req.time_schedule else '' }}" {% if not g.user.is_admin %}readonly{% endif %}>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">IT support</label>
+            <input class="form-control" name="account_it_support" type="text" value="{{ req.account_it_support or '' }}" {% if not g.user.is_admin %}readonly{% endif %}>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Data Instalação</label>
+            <input class="form-control" name="install_date" type="date" value="{{ req.install_date.isoformat() if req.install_date else '' }}" {% if not g.user.is_admin %}readonly{% endif %}>
+          </div>
+
+
+          <button class="btn btn-primary mt-1" type="submit" {% if not g.user.is_admin %}disabled{% endif %}>Guardar alterações</button>
+        </form>
+      </div>
+    </div>
+
+    {% if req.requires_printer_validation %}
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold">Validação Impressora</div>
+      <div class="card-body">
+        <form id="viewForm"method="post" action="{{ url_for('requests.validate_printer', request_id=req.id) }}">
+          <select class="form-select mb-3" name="is_printer_validated" {% if not (g.user.is_admin or g.user.is_dir_reg) or req.is_printer_validated %}disabled{% endif %}>
+            <option value="">Pendente</option>
+            <option value="validated" {% if req.is_printer_validated == 'validated' %}selected{% endif %}>Impressora validada</option>
+            <option value="not_validated" {% if req.is_printer_validated == 'not_validated' %}selected{% endif %}>Impressora não validada</option>
+          </select>
+
+          <button id="gravarBtn" class="btn btn-warning" type="submit" {% if not (g.user.is_admin or g.user.is_dir_reg) or req.is_printer_validated %}disabled{% endif %}>
+            Guardar validação
+          </button>
+          <script>
+          document.getElementById("viewForm").addEventListener("submit", function () {
+          document.getElementById("gravarBtn").disabled = true;
+          document.getElementById("gravarBtn").textContent = "A gravar...";
+          });
+          </script>
+          {% if not (g.user.is_admin or g.user.is_dir_reg) %}
+          <div class="form-text">Todos conseguem ver, mas só admin ou Direção Regional podem alterar.</div>
+          {% endif %}
+
+          {% if req.is_printer_validated %}
+          <div class="alert alert-info mt-3">
+            <strong>Validação concluída</strong><br>
+            Resultado: {{ req.validation_label() }}<br>
+            Utilizador: {{ req.printer_validation_changed_by }}<br>
+            Data: {{ req.printer_validation_changed_at }}
+          </div>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% extends "base.html" %} {% block title %}Novo Pedido{% endblock %} {% block
+content %}
+<h1 class="h3 mb-3">Novo Pedido</h1>
+<form method="post" id="requestForm" class="needs-validation" novalidate>
+  <div class="card mb-3">
+    <div class="card-header fw-semibold">Conta e dados AS400</div>
+    <div class="card-body row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Conta</label>
+        <div class="input-group">
+          <input
+            class="form-control"
+            name="account"
+            id="account"
+            maxlength="8"
+            pattern="\d{8}"
+            required
+          />
+          <button class="btn btn-outline-primary" type="button" id="lookupBtn">
+            Actualizar Dados
+          </button>
+        </div>
+        <div class="form-text">
+          8 dígitos numéricos. A consulta ao AS400 só é feita se a máscara
+          estiver válida.
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Nome</label>
+        <input class="form-control bg-light" name="name" id="name" readonly />
+      </div>
+        <div class="col-md-3">
+        <label class="form-label">CCC</label>
+        <input class="form-control" name="ccc" />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Morada 1</label>
+        <input
+          class="form-control bg-light"
+          name="address1"
+          id="address1"
+          readonly
+        />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Morada 2</label>
+        <input
+          class="form-control bg-light"
+          name="address2"
+          id="address2"
+          readonly
+        />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Código Postal</label>
+        <input class="form-control bg-light" name="zip" id="zip" readonly />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Cidade</label>
+        <input class="form-control bg-light" name="city" id="city" readonly />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">ODBC</label>
+        <input
+          class="form-control bg-light"
+          name="no_values_from_odbc"
+          id="no_values_from_odbc"
+          readonly
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header fw-semibold">2. Contactos e agenda</div>
+    <div class="card-body row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Telefone</label>
+        <input class="form-control" name="phn" required />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Pessoa de Contacto</label>
+        <input class="form-control" name="contact" required />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Email</label>
+        <input class="form-control" name="email" type="email" />
+      </div>
+      <div class="col-md-3"></div>
+      <div class="col-md-3">
+        <label class="form-label">Data Agendada</label>
+        <input class="form-control" name="date_schedule" type="date" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Hora Agendada</label>
+        <input class="form-control" name="time_schedule" type="time" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Data Instalação</label>
+          <input class="form-control" name="install_date" type="date" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header fw-semibold">3. Instalação</div>
+    <div class="card-body row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Tipo de Instalação / Impressora</label>
+        <select class="form-select" name="installation_type_id" required>
+          <option value="">Tipo de Impressora</option>
+          {% for it in installation_types %}
+          <option value="{{ it.id }}">
+            {{ it.label }}{% if it.requires_validation %} | requer validação{%
+            endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Gestor de Conta</label>
+        <select class="form-select" name="account_manager_id" required>
+          <option value="">Escolha o Gestor</option>
+          {% for m in account_managers %}
+          <option value="{{ m.id }}">{{ m.account_manager}}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Técnico IT instalação</label>
+        <select class="form-select" name="account_it_id" required>
+          <option value="">Escolha Técnico</option>
+          {% for t in techs %}
+          <option value="{{ t.id }}">{{ t.tech_user_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Envios por dia</label>
+        <input class="form-control" name="envios_dia" required />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Quantidade de impressoras</label>
+        <select class="form-select" name="printer_requested_qty">
+          {% for q in quantities %}
+          <option value="{{ q }}">{{ q }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+
+<div class="d-flex gap-2">
+  <button id="gravarBtn" class="btn btn-primary" type="submit">
+    Gravar Pedido
+  </button>
+
+  <a
+    id="cancelarBtn"
+    class="btn btn-outline-secondary"
+    href="{{ url_for('requests.index') }}"
+  >
+    Cancelar
+  </a>
+</div>
+
+<script>
+document.querySelector("form").addEventListener("submit", function () {
+    document.getElementById("gravarBtn").disabled = true;
+
+    const cancelar = document.getElementById("cancelarBtn");
+    cancelar.classList.add("disabled");
+    cancelar.style.pointerEvents = "none";
+
+    document.getElementById("gravarBtn").textContent = "A gravar...";
+});
+</script>
+</form>
+{% endblock %}

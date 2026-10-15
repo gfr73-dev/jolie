@@ -1,0 +1,532 @@
+I want to build a Flask application from scratch.
+
+CONTEXT:
+- This replaces an IBM Notes application
+- It manages "Printer installation Requests"
+
+DATABASE is named JOLIE:
+- Table register_request which holds all fields from lookup (all read-only) + the all other fields defined in the synopsis extracted from IBM Notes application
+- Table installation_types, which holds: installation_type, printer_type, printer_initial_status, requires_validation (boolean)
+- Table register_users which holds: username (email) password, user_dir_reg, is_admin (boolean) and is_dir_reg (boolean)
+- Table register_it_tech which holds: Tech User Name (First Last), Tech user email 
+- Table install_status which holds: id, status
+
+BUSINESS RULES:
+- User enters account number (fixed width 8char, only numeric:
+	> If it doesn´t match this mask, no query should be submitted to AS400) → lookup from AS400
+	> if the account number already exists on the register_request table, do not allow to proceed, and send a pop-up message: "Conta já instalada" 
+- Form is pre-filled with lookup data (read-only fields)
+- User then selects:
+    - install type
+    - account manager
+    - IT tech responsible for installation from drop-list indexed to table register_it_tech
+- initial request status derives from installation_types.printer_initial_status based on the printer_type selected.
+all subsequent statuses are defined via droplist, from table request_status, only allowed to whoever is is_admin:true
+
+- initial requires_printer_validation derives from installation_types.requires_validation based on the printer_type selected
+- create different views, based on the request status field
+- on save request, if account already exists in the database, display a warning and do not try to submit the info to avoid mysql erros on screen about index violations
+- if printer type requires validation (requires_validation:true)
+    1. send email to associated user's user_dir_reg
+    2. request should appear in a sepate view, "Aguarda Validação Impressora".
+Everyone can access this view, but only who is_admin:true or is_dir_reg:true can change the is_printer_validated field.
+
+Users must be able to "view" the record, select drop list to "validated" (impressora validada) or "not validated" (impressora não validada), and click "save"
+    1. validated -> sends email to the IT tech
+    2. not validated -> sends email to IT tech and account_manager
+
+TECH STACK:
+- Flask
+- SQLAlchemy
+- MySQL
+- Jinja templates
+- Bootstrap UI
+
+
+OUTPUT EXPECTED:
+- Full project structure
+- All files complete (no snippets), zip file, if possible saved on my Onedrive
+- Copy-paste ready
+- No broken dependencies
+- landing page is the list of all requests, with option to filter by status
+
+
+IBM NOTES SYNOPSIS:
+
+Name:	Account com ODBC AS400
+Alias:	f001
+Last Modification:	25/03/2026 11:20:01
+Comment:	[Not Assigned]
+Type:	Document	
+Window Title Formula:	account + " " + name;
+Include in Compose Menu:	No
+Include in Query by Form:	Yes
+Default Database Form:	No
+Automatically Refresh Fields:	Yes
+Mail New Documents When Saving:	No
+Store Form In Documents:	No
+Inherit Default Field Values:	Yes
+Updates Become Responses:	No
+Retain Prior Versions As Responses:	No
+Activate Objects When Composing:	No
+Activate Objects When Editing:	No
+Activate Objects When Reading:	No
+Document Encryption Keys:	[None Assigned]
+Composed Documents May Be Read By:	All Users
+Form May Be Composed By:	All Users
+Subcomponents:
+Field:	docuid
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Computed when composed
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Formula:	@Text(@DocumentUniqueID);
+Is Scripted:	No
+Field:	qty
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Default Value Formula:	"1"
+Is Scripted:	No
+Field:	createdby
+Datatype:	Author Names
+Help Description:	[Not Assigned]
+Field Type:	Computed when composed
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Formula:	@Name([CN]; @Author);
+Is Scripted:	No
+Field:	creation
+Datatype:	Time
+Time Format:	14/05/2026
+Help Description:	[Not Assigned]
+Field Type:	Computed when composed
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Formula:	@Created
+Is Scripted:	No
+Field:	install_date
+Datatype:	Time
+Time Format:	14/05/2026
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Is Scripted:	No
+Field:	status
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Default Value Formula:	"POR GRAVAR"
+Is Scripted:	No
+Field:	INSTALL_TYPE
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Is Scripted:	No
+Field:	ACCOUNT_INSTALL_CHECK
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Default Value Formula:	""
+Is Scripted:	No
+Field:	no_values_from_odbc
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Default Value Formula:	"ODBC"
+Is Scripted:	No
+Field:	date_schedule
+Datatype:	Time
+Time Format:	14/05/2026
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Is Scripted:	No
+Field:	time_schedule
+Datatype:	Time
+Time Format:	09:48
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Is Scripted:	No
+Field:	account
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Input Validation Formula:	@If(account = ""; @Failure("Não Preencheu o Número de Conta"); @Success);
+Is Scripted:	No
+Field:	ccc
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Is Scripted:	No
+Hotspot
+Type:	Button
+Caption:	Actualizar Dados
+Formula:	@SetField("account"; @Trim(account));@SetField("account"; @Right(account; 8));@SetField("name"; @DbLookup("ODBC" : ""; "cli000"; "MOBILE"; "MOBILE"; "APIDATA.CLI000"; "clinom"; "clicompte"; account; "Distinct"));@SetField("address1"; @DbLookup("ODBC" : ""; "cli000"; "MOBILE"; "MOBILE"; "APIDATA.CLI000"; "CLIADR1"; "CLICOMPTE"; account; "Distinct"));@SetField("address2"; @DbLookup("ODBC" : ""; "cli000"; "MOBILE"; "MOBILE"; "APIDATA.CLI000"; "CLIADR2"; "CLICOMPTE"; account; "Distinct"));@SetField("zip"; @DbLookup("ODBC" : ""; "cli000"; "MOBILE"; "MOBILE"; "APIDATA.CLI000"; "CLICODPOS"; "CLICOMPTE"; account; "Distinct"));@SetField("city"; @DbLookup("ODBC" : ""; "cli000"; "MOBILE"; "MOBILE"; "APIDATA.CLI000"; "CLIVILLE"; "CLICOMPTE"; account; "Distinct"));@SetField("no_values_from_odbc"; @DbLookup("ODBC" : ""; "cli000"; "MOBILE"; "MOBILE"; "OPERACOES.BIC3TAB"; "BICVCLI"; "BICCPTCLI"; account));@SetField("ACCOUNT_INSTALL_CHECK"; @DbLookup(""; ""; "v000a"; account; 2; [FailSilent]));@PostedCommand([EditGotoField]; "account");@PostedCommand([EditGotoField]; "ccc");
+Hide When:	ACCOUNT_INSTALL_CHECK != "";
+Hotspot
+Type:	Button
+Caption:	CORRIGIR
+Formula:	@SetField("ACCOUNT_INSTALL_CHECK"; "");
+Field:	name
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Input Translation Formula:	@UpperCase(name);
+Is Scripted:	No
+Field:	address1
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Input Translation Formula:	@UpperCase(address1);
+Is Scripted:	No
+Field:	address2
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Input Translation Formula:	@UpperCase(address2);
+Is Scripted:	No
+Field:	zip
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Is Scripted:	No
+Field:	city
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Input Translation Formula:	@UpperCase(city);
+Is Scripted:	No
+Field:	phn
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Input Validation Formula:	@If(phn = ""; @Failure("Não Preencheu o Campo do Telefone"); @Success);
+Is Scripted:	No
+Field:	contact
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Input Translation Formula:	@ProperCase(contact);
+Input Validation Formula:	@If(contact = ""; @Failure("Não Preencheu o Campo do Contacto"); @Success);
+Is Scripted:	No
+Field:	email
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Input Translation Formula:	@LowerCase(email);
+Is Scripted:	No
+Field:	gps_n
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Is Scripted:	No
+Field:	gps_n_1
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Is Scripted:	No
+Field:	account_manager
+Datatype:	Keywords
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Keyword User Interface:	Standard
+Allow Values Not In List:	No
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Default Value Formula:	"Escolha o Gestor"
+Input Validation Formula:	@If(account_manager = "Escolha o Gestor"; @Failure("Não Seleccionou o Gestor de Conta"); @Success);
+Is Scripted:	No
+Field:	account_manager_email
+Datatype:	Keywords
+Help Description:	[Not Assigned]
+Field Type:	Computed
+Keyword User Interface:	Standard
+Allow Values Not In List:	No
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Formula:	@If(account_manager != "Escolha o Gestor"; @DbLookup(""; ""; "V005"; account_manager; 9; [FailSilent]); "");
+Is Scripted:	No
+Field:	account_assist
+Datatype:	Keywords
+Input Multi-Value Separator(s):	Comma, Semicolon
+Display Multi-Value Separator:	Semicolon
+Help Description:	[Not Assigned]
+Field Type:	Computed
+Keyword User Interface:	Standard
+Allow Values Not In List:	No
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Formula:	@If(account_manager != "Escolha o Gestor"; @DbLookup(""; ""; "V005"; account_manager; 4; [FailSilent]); "");
+Is Scripted:	No
+Field:	account_dir_reg
+Datatype:	Keywords
+Help Description:	[Not Assigned]
+Field Type:	Computed
+Keyword User Interface:	Standard
+Allow Values Not In List:	No
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Formula:	@If(account_manager != "Escolha o Gestor"; @DbLookup(""; ""; "V005"; account_manager; 6; [FailSilent]); "");
+Is Scripted:	No
+Field:	printer_requested
+Datatype:	Keywords
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Keyword User Interface:	Standard
+Allow Values Not In List:	No
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Default Value Formula:	"Tipo de Impressora"
+Input Validation Formula:	@If(printer_requested = "Tipo de Impressora"; @Failure("Não Seleccionou o Tipo de Impressora"); @Success);
+Is Scripted:	No
+Field:	printer_install_type
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Computed
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Formula:	@If(printer_requested != "Tipo de Impressora"; @DbLookup(""; ""; "V004"; printer_requested; 2; [FailSilent]); "000");
+Is Scripted:	No
+Field:	envios_dia
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Input Validation Formula:	@If(printer_requested = "Tipo de Impressora"; @Failure("Não Seleccionou o Tipo de Impressora"); @Success);
+Is Scripted:	No
+Field:	printer_requested_qty
+Datatype:	Keywords
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Keyword User Interface:	Standard
+Allow Values Not In List:	No
+Allowable Keywords:	1
+	2
+	3
+	4
+	5
+	6
+	7
+	8
+	9
+	10
+	11
+	12
+	13
+	14
+	15
+	16
+	17
+	18
+	19
+	20
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Default Value Formula:	"1"
+Input Validation Formula:	@If(envios_dia = ""; @Failure("Não Preencheu o número de envios diários"); @Success);
+Is Scripted:	No
+Field:	account_it
+Datatype:	Keywords
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Keyword User Interface:	Standard
+Allow Values Not In List:	No
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Default Value Formula:	"Escolha Técnico"
+Input Validation Formula:	@If(account_it = "Escolha Técnico"; @Failure("Não Preencheu o Campo Gestor IT Instalação"); @Success);
+Is Scripted:	No
+Field:	account_it_support
+Datatype:	Keywords
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Keyword User Interface:	Standard
+Allow Values Not In List:	No
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Default Value Formula:	"A preencher pelo DSI"
+Is Scripted:	No
+Field:	printer_1
+Datatype:	Keywords
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Keyword User Interface:	Standard
+Allow Values Not In List:	No
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Is Scripted:	No
+Field:	usb_cable_1
+Datatype:	Keywords
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Keyword User Interface:	Standard
+Allow Values Not In List:	No
+Allowable Keywords:	Ethernet
+	Parallel
+	Print Server Cliente
+	Print Server DPD
+	RS232
+	RS232 Usb Adapt Cliente
+	RS232 Usb Adapt DPD
+	Usb
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Default Value Formula:	"9 Pin Cable"
+Is Scripted:	No
+Field:	925_adapt_1
+Datatype:	Keywords
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Keyword User Interface:	Radio Buttons
+Allowable Keywords:	YES
+	NO
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Default Value Formula:	"NO"
+Is Scripted:	No
+Field:	key_1
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Is Scripted:	No
+Field:	obs_migracao
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Input Translation Formula:	@ProperCase(obs_normalizada);
+Is Scripted:	No
+Hide When:	normalizada = "SIM";
+Field:	normalizada_1
+Datatype:	Keywords
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Keyword User Interface:	Radio Buttons
+Allowable Keywords:	SIM
+	NÃO
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Default Value Formula:	"NÃO"
+Is Scripted:	No
+Field:	db_ok_1
+Datatype:	Number
+Number Format:	Fixed (0 Decimal Places)
+Percentage (value * 100)%:	No
+Parentheses on Negative Numbers:	No
+Punctuated at Thousands:	No
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Is Scripted:	No
+Field:	db_nok_1
+Datatype:	Number
+Number Format:	Fixed (0 Decimal Places)
+Percentage (value * 100)%:	No
+Parentheses on Negative Numbers:	No
+Punctuated at Thousands:	No
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Is Scripted:	No
+Field:	obs_normalizada_1
+Datatype:	Text
+Help Description:	[Not Assigned]
+Field Type:	Editable
+Sign When Mailing/In Section:	No
+Encryption:	Disabled
+Update Requires Editor Access:	No
+Input Translation Formula:	@ProperCase(obs_normalizada);
+Is Scripted:	No
+(Globals)
+(Form)  f001
+Sub Postsave(Source As Notesuidocument)
+End Sub
+[None]
+

@@ -1,0 +1,17 @@
+
+ACCOUNT_MANAGERS_RAW = os.getenv(
+        "ACCOUNT_MANAGERS",
+        "Escolha o Gestor|||;Gestor Exemplo|gestor.exemplo@yourdomain.pt||dir.regional@yourdomain.pt",
+    )​‌
+
+this should be linked to a database, named_account_managers, which holds:​‌
+
+- id​‌
+- account_manager_email​‌
+- account_manager_dir_reg_email​‌
+
+when creating a request that requires printer validation, it should send an email to account_manager_dir_reg_email, with the link to the record which needs to be validated​‌
+
+the combo list to select the account manager shoul be linked to account_manager_email
+
+need the script to create the table, and also tell me whci files I need to upload so that you can change them to this new reality

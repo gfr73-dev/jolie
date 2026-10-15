@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block title %}Administração{% endblock %}
+{% block content %}
+
+<h1 class="h3 mb-4">Administração do Sistema</h1>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <div class="text-muted">Gestores</div>
+                <div class="display-6">{{ stats.managers if stats else account_managers|length }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <div class="text-muted">Técnicos IT</div>
+                <div class="display-6">{{ stats.techs if stats else techs|length }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <div class="text-muted">Tipos Instalação</div>
+                <div class="display-6">{{ stats.types if stats else installation_types|length }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <div class="text-muted">Status</div>
+                <div class="display-6">{{ stats.statuses if stats else statuses|length }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#managers" type="button" role="tab">Gestores</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#techs" type="button" role="tab">Técnicos IT</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#types" type="button" role="tab">Tipos Instalação</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#statuses" type="button" role="tab">Status</button>
+    </li>
+</ul>
+
+<div class="tab-content">
+
+    <div class="tab-pane fade show active" id="managers" role="tabpanel">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header fw-semibold">Novo Gestor de Conta</div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('admin.add_account_manager') }}">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-3"><input class="form-control" name="account_manager" placeholder="Nome do Gestor" required></div>
+                        <div class="col-md-3"><input class="form-control" name="account_manager_email" placeholder="Email gestor" type="email" required></div>
+                        <div class="col-md-3"><input class="form-control" name="account_manager_dir_reg_email" placeholder="Email direção regional" type="email" required></div>
+                        <div class="col-md-2"><div class="form-check"><input class="form-check-input" type="checkbox" name="active" id="new_manager_active" checked><label class="form-check-label" for="new_manager_active">Ativo</label></div></div>
+                        <div class="col-md-1"><button class="btn btn-primary w-100" type="submit">+</button></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light"><tr><th>Nome</th><th>Email</th><th>Direção Regional</th><th>Ativo</th><th class="text-end">Ações</th></tr></thead>
+                    <tbody>
+                    {% for m in account_managers %}
+                    <tr>
+                        <td><input class="form-control form-control-sm" form="manager-update-{{ m.id }}" name="account_manager" value="{{ m.account_manager }}" required></td>
+                        <td><input class="form-control form-control-sm" form="manager-update-{{ m.id }}" name="account_manager_email" value="{{ m.account_manager_email }}" type="email" required></td>
+                        <td><input class="form-control form-control-sm" form="manager-update-{{ m.id }}" name="account_manager_dir_reg_email" value="{{ m.account_manager_dir_reg_email }}" type="email" required></td>
+                        <td><input class="form-check-input" form="manager-update-{{ m.id }}" type="checkbox" name="active" {% if m.active %}checked{% endif %}></td>
+                        <td class="text-end">
+                            <form id="manager-update-{{ m.id }}" method="post" action="{{ url_for('admin.update_account_manager', manager_id=m.id) }}" class="d-inline"></form>
+                            <button class="btn btn-sm btn-primary" form="manager-update-{{ m.id }}" type="submit">Guardar</button>
+                            <form method="post" action="{{ url_for('admin.toggle_account_manager', manager_id=m.id) }}" class="d-inline">
+                                <button class="btn btn-sm {% if m.active %}btn-outline-warning{% else %}btn-outline-success{% endif %}" type="submit">{{ 'Desativar' if m.active else 'Ativar' }}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">Sem gestores configurados.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="techs" role="tabpanel">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header fw-semibold">Novo Técnico IT</div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('admin.add_tech') }}">
+                    <div class="row g-2">
+                        <div class="col-md-5"><input class="form-control" name="tech_user_name" placeholder="Nome" required></div>
+                        <div class="col-md-5"><input class="form-control" name="tech_user_email" placeholder="Email" type="email" required></div>
+                        <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Adicionar</button></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light"><tr><th>Nome</th><th>Email</th><th>Ativo</th><th class="text-end">Ações</th></tr></thead>
+                    <tbody>
+                    {% for t in techs %}
+                    <tr>
+                        <td><input class="form-control form-control-sm" form="tech-update-{{ t.id }}" name="tech_user_name" value="{{ t.tech_user_name }}" required></td>
+                        <td><input class="form-control form-control-sm" form="tech-update-{{ t.id }}" name="tech_user_email" value="{{ t.tech_user_email }}" type="email" required></td>
+                        <td><input class="form-check-input" form="tech-update-{{ t.id }}" type="checkbox" name="active" {% if t.active %}checked{% endif %}></td>
+                        <td class="text-end">
+                            <form id="tech-update-{{ t.id }}" method="post" action="{{ url_for('admin.update_tech', tech_id=t.id) }}" class="d-inline"></form>
+                            <button class="btn btn-sm btn-primary" form="tech-update-{{ t.id }}" type="submit">Guardar</button>
+                            <form method="post" action="{{ url_for('admin.toggle_tech', tech_id=t.id) }}" class="d-inline">
+                                <button class="btn btn-sm {% if t.active %}btn-outline-warning{% else %}btn-outline-success{% endif %}" type="submit">{{ 'Desativar' if t.active else 'Ativar' }}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center text-muted py-4">Sem técnicos configurados.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="types" role="tabpanel">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header fw-semibold">Novo Tipo de Instalação</div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('admin.add_installation_type') }}">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-3"><input class="form-control" name="installation_type" placeholder="Tipo de Instalação" required></div>
+                        <div class="col-md-3"><input class="form-control" name="printer_type" placeholder="Tipo de Impressora" required></div>
+                        <div class="col-md-3"><input class="form-control" name="printer_initial_status" placeholder="Status Inicial" required></div>
+                        <div class="col-md-2"><div class="form-check"><input class="form-check-input" type="checkbox" name="requires_validation" id="new_type_validation"><label class="form-check-label" for="new_type_validation">Validação</label></div></div>
+                        <div class="col-md-1"><button class="btn btn-primary w-100" type="submit">+</button></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light"><tr><th>Instalação</th><th>Impressora</th><th>Status Inicial</th><th>Validação</th><th>Ativo</th><th class="text-end">Ações</th></tr></thead>
+                    <tbody>
+                    {% for it in installation_types %}
+                    <tr>
+                        <td><input class="form-control form-control-sm" form="type-update-{{ it.id }}" name="installation_type" value="{{ it.installation_type }}" required></td>
+                        <td><input class="form-control form-control-sm" form="type-update-{{ it.id }}" name="printer_type" value="{{ it.printer_type }}" required></td>
+                        <td><input class="form-control form-control-sm" form="type-update-{{ it.id }}" name="printer_initial_status" value="{{ it.printer_initial_status }}" required></td>
+                        <td><input class="form-check-input" form="type-update-{{ it.id }}" type="checkbox" name="requires_validation" {% if it.requires_validation %}checked{% endif %}></td>
+                        <td><input class="form-check-input" form="type-update-{{ it.id }}" type="checkbox" name="active" {% if it.active %}checked{% endif %}></td>
+                        <td class="text-end">
+                            <form id="type-update-{{ it.id }}" method="post" action="{{ url_for('admin.update_installation_type', type_id=it.id) }}" class="d-inline"></form>
+                            <button class="btn btn-sm btn-primary" form="type-update-{{ it.id }}" type="submit">Guardar</button>
+                            <form method="post" action="{{ url_for('admin.toggle_installation_type', type_id=it.id) }}" class="d-inline">
+                                <button class="btn btn-sm {% if it.active %}btn-outline-warning{% else %}btn-outline-success{% endif %}" type="submit">{{ 'Desativar' if it.active else 'Ativar' }}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">Sem tipos de instalação configurados.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="statuses" role="tabpanel">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header fw-semibold">Novo Status</div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('admin.add_status') }}">
+                    <div class="input-group">
+                        <input class="form-control" name="status" placeholder="Novo Status" required>
+                        <button class="btn btn-primary" type="submit">Adicionar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light"><tr><th>Status</th><th>Ativo</th><th class="text-end">Ações</th></tr></thead>
+                    <tbody>
+                    {% for st in statuses %}
+                    <tr>
+                        <td><input class="form-control form-control-sm" form="status-update-{{ st.id }}" name="status" value="{{ st.status }}" required></td>
+                        <td><input class="form-check-input" form="status-update-{{ st.id }}" type="checkbox" name="active" {% if st.active %}checked{% endif %}></td>
+                        <td class="text-end">
+                            <form id="status-update-{{ st.id }}" method="post" action="{{ url_for('admin.update_status', status_id=st.id) }}" class="d-inline"></form>
+                            <button class="btn btn-sm btn-primary" form="status-update-{{ st.id }}" type="submit">Guardar</button>
+                            <form method="post" action="{{ url_for('admin.toggle_status', status_id=st.id) }}" class="d-inline">
+                                <button class="btn btn-sm {% if st.active %}btn-outline-warning{% else %}btn-outline-success{% endif %}" type="submit">{{ 'Desativar' if st.active else 'Ativar' }}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" class="text-center text-muted py-4">Sem status configurados.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

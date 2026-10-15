@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Aguarda Validação Impressora{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Aguarda Validação Impressora</h1>
+<div class="card shadow-sm"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+<thead class="table-light"><tr><th>Conta</th><th>Cliente</th><th>Gestor</th><th>Técnico IT</th><th>Validação</th><th>Criação</th><th></th></tr></thead>
+<tbody>{% for req in requests %}<tr><td class="fw-semibold">{{ req.account }}</td><td>{{ req.name }}</td><td>{{ req.account_manager }}</td><td>{{ req.account_it }}</td><td>{{ req.validation_label() }}</td><td>{{ req.creation.strftime('%Y-%m-%d %H:%M') }}</td><td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('requests.view_request', request_id=req.id) }}">Abrir</a></td></tr>{% else %}<tr><td colspan="7" class="text-center text-muted py-4">Sem pedidos pendentes.</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}
