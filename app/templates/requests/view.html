@@ -12,6 +12,9 @@
       <div class="card-header fw-semibold">Detalhes do Pedido</div>
       <div class="card-body">
         <dl class="row mb-0">
+          <dt class="col-sm-3">Criação</dt>
+          <dd class="col-sm-9">{{ req.creation.strftime('%Y-%m-%d %H:%M') }}</dd>
+
           <dt class="col-sm-3">Conta</dt>
           <dd class="col-sm-9">{{ req.account }}</dd>
 

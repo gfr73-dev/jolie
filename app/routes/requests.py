@@ -13,7 +13,7 @@ from flask import (
     g,
     current_app,
 )
-from sqlalchemy import or_
+from sqlalchemy import inspect as sqlalchemy_inspect, or_
 from sqlalchemy.exc import IntegrityError
 from app import db
 from app.models import (
@@ -479,20 +479,29 @@ def confirm_printer_collected(request_id):
 def move_to_history(request_id):
     req = RegisterRequest.query.get_or_404(request_id)
     if not g.user.is_admin:
-        flash("Apenas administradores podem mover pedidos para o historico.", "danger")
-        return redirect(url_for("requests.view_request", request_id=req.id))
+        flash("Nao foi possivel mover o pedido para o historico.", "danger")
+        return redirect(url_for("requests.view_request", request_id=request_id))
 
-    history = RegisterRequestHistory(
-        **{column.key: getattr(req, column.key) for column in RegisterRequest.__table__.columns}
-    )
     try:
+        source_attrs_by_column = {
+            prop.columns[0].name: prop.key
+            for prop in sqlalchemy_inspect(RegisterRequest).column_attrs
+        }
+        history = RegisterRequestHistory()
+        for prop in sqlalchemy_inspect(RegisterRequestHistory).column_attrs:
+            source_attr = source_attrs_by_column[prop.columns[0].name]
+            setattr(history, prop.key, getattr(req, source_attr))
+
         db.session.add(history)
         db.session.flush()
         db.session.delete(req)
         db.session.commit()
     except Exception:
+        current_app.logger.exception(
+            "Failed to move request %s to register_request_his", request_id
+        )
         db.session.rollback()
-        flash("NÃ£o foi possÃ­vel mover o pedido para o histÃ³rico.", "danger")
-        return redirect(url_for("requests.view_request", request_id=req.id))
-    flash("Pedido movido para o histÃ³rico.", "success")
+        flash("Nao foi possivel mover o pedido para o historico.", "danger")
+        return redirect(url_for("requests.view_request", request_id=request_id))
+    flash("Pedido movido para o historico.", "success")
     return redirect(url_for("requests.index"))

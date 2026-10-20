@@ -69,7 +69,7 @@ class Config:
     SMTP_ENABLED = os.getenv("SMTP_ENABLED", "false").lower() == "true"
     SMTP_HOST = os.getenv("SMTP_HOST", "dpd.relay.tmes.trendmicro.eu")
     SMTP_PORT = int(os.getenv("SMTP_PORT", "25"))
-    SMTP_TIMEOUT_SECONDS = int(os.getenv("SMTP_TIMEOUT_SECONDS", "15"))
+    SMTP_TIMEOUT_SECONDS = int(os.getenv("SMTP_TIMEOUT_SECONDS", "10"))
     SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "false").lower() == "true"
     SMTP_USER = os.getenv("SMTP_USER", "")
     SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")

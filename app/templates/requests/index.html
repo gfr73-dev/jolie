@@ -44,11 +44,10 @@ content %}
         <tr>
           <th>Conta</th>
           <th>Nome</th>
+          <th>Localidade</th>
           <th>Gestor</th>
-          <th>Técnico IT</th>
           <th>Impressora</th>
           <th>Status</th>
-          <th>Criação</th>
           <th></th>
         </tr>
       </thead>
@@ -57,8 +56,8 @@ content %}
         <tr>
           <td class="fw-semibold">{{ req.account }}</td>
           <td>{{ req.name or '' }}</td>
+          <td>{{ req.zip }} {{ req.city }}</td>
           <td>{{ req.account_manager }}</td>
-          <td>{{ req.account_it }}</td>
           <td>{{ req.printer_requested }}</td>
           <td>
               {% if req.status == 'INSTALADO' %}
@@ -86,7 +85,6 @@ content %}
                   <span class="badge text-bg-secondary">{{ req.status }}</span>
               {% endif %}
               </td>
-          <td>{{ req.creation.strftime('%Y-%m-%d %H:%M') }}</td>
           <td>
             <a
               class="btn btn-sm btn-outline-primary"
