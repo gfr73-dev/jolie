@@ -341,6 +341,63 @@ def view_request(request_id):
     return render_template("requests/view.html", req=req, **catalogs)
 
 
+@requests_bp.post("/requests/<int:request_id>/details")
+@login_required
+def update_request_details(request_id):
+    if not g.user.is_admin:
+        flash("Não tem permissões de administrador.", "danger")
+        return redirect(url_for("requests.view_request", request_id=request_id))
+
+    req = RegisterRequest.query.get_or_404(request_id)
+    manager = AccountManager.query.get(request.form.get("account_manager_id"))
+    tech = selected_tech(request.form.get("account_it_id"))
+    installation_type = InstallationType.query.get(
+        request.form.get("installation_type_id")
+    )
+    contact = request.form.get("contact", "").strip()
+    phn = request.form.get("phn", "").strip()
+    email = request.form.get("email", "").strip().lower()
+    quantity = request.form.get("printer_requested_qty", "").strip()
+
+    if not manager or not manager.active:
+        flash("Selecione um gestor de conta ativo.", "danger")
+        return redirect(url_for("requests.view_request", request_id=req.id))
+    if not tech:
+        flash("Selecione um técnico IT.", "danger")
+        return redirect(url_for("requests.view_request", request_id=req.id))
+    if not installation_type:
+        flash("Selecione o tipo de instalação e impressora.", "danger")
+        return redirect(url_for("requests.view_request", request_id=req.id))
+    if not all((contact, phn)):
+        flash("Contacto e telefone são obrigatórios.", "danger")
+        return redirect(url_for("requests.view_request", request_id=req.id))
+    if len(contact) > 160 or len(phn) > 80 or len(email) > 255:
+        flash("Um ou mais campos de contacto excedem o tamanho permitido.", "danger")
+        return redirect(url_for("requests.view_request", request_id=req.id))
+    if email and "@" not in email:
+        flash("Indique um endereço de email válido.", "danger")
+        return redirect(url_for("requests.view_request", request_id=req.id))
+    if quantity not in get_catalogs()["quantities"]:
+        flash("Selecione uma quantidade entre 1 e 20.", "danger")
+        return redirect(url_for("requests.view_request", request_id=req.id))
+
+    req.account_manager = manager.account_manager
+    req.account_manager_email = manager.account_manager_email
+    req.account_dir_reg = manager.account_manager_dir_reg_email
+    req.account_it = tech.tech_user_name
+    req.account_it_email = tech.tech_user_email
+    req.install_type = installation_type.installation_type
+    req.printer_install_type = installation_type.installation_type
+    req.printer_requested = installation_type.printer_type
+    req.printer_requested_qty = quantity
+    req.contact = contact
+    req.phn = phn
+    req.email = email or None
+    db.session.commit()
+    flash("Dados do pedido atualizados.", "success")
+    return redirect(url_for("requests.view_request", request_id=req.id))
+
+
 @requests_bp.route("/validation")
 @login_required
 def validation_queue():
@@ -424,6 +481,7 @@ def request_printer_pickup(request_id):
 
     set_request_status(req, STATUS_AWAITING_PRINTER_PICKUP)
     db.session.commit()
+    record_url = url_for("requests.view_request", request_id=req.id, _external=True)
 
     def row(label, value):
         safe_value = escape(str(value or ""))
@@ -440,12 +498,19 @@ def request_printer_pickup(request_id):
         ("Validacao da impressora", req.validation_label()),
         ("Observações", req.obs_migracao),
     ]
-    body = "<html><body><h2>Recolha de impressora</h2><table>" + "".join(row(k, v) for k, v in details) + "</table></body></html>"
+    body = (
+        "<html><body><h2>Recolha de impressora</h2><table>"
+        + "".join(row(k, v) for k, v in details)
+        + "</table><p><a href='"
+        + escape(record_url, quote=True)
+        + "'>Abrir pedido</a></p></body></html>"
+    )
     try:
         sent = send_html_mail(
             ["ajuda@dpd.pt"],
             f"Recolha de impressora {req.account} {req.name or ''}".strip(),
             body,
+            text_body=f"Recolha de impressora\n\nAbrir pedido: {record_url}",
         )
     except Exception:
         current_app.logger.exception(

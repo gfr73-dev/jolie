@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+import secrets
+import string
+from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash
 from app import db
 from app.models import (
     InstallationType,
@@ -7,7 +9,8 @@ from app.models import (
     RegisterUser,
     AccountManager,
 )
-from app.services.session import admin_required
+from app.services.mail import send_mail
+from app.services.session import admin_required, master_admin_required
 
 
 admin_bp = Blueprint("admin", __name__)
@@ -37,6 +40,108 @@ def dashboard():
         ).all(),
         stats=stats,
     )
+
+
+def make_temporary_password():
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*()-_=+"
+    password_chars = [
+        secrets.choice(string.ascii_lowercase),
+        secrets.choice(string.ascii_uppercase),
+        secrets.choice(string.digits),
+        secrets.choice("!@#$%^&*()-_=+"),
+    ]
+    password_chars.extend(secrets.choice(alphabet) for _ in range(6))
+    secrets.SystemRandom().shuffle(password_chars)
+    return "".join(password_chars)
+
+
+def deliver_user_password(user, password, action):
+    try:
+        return send_mail(
+            [user.username],
+            f"JOLIE - {action} da palavra-passe",
+            f"A sua palavra-passe de acesso ao JOLIE foi definida pelo administrador.\n\n"
+            f"Utilizador: {user.username}\n"
+            f"Palavra-passe: {password}\n\n"
+            "Por segurança, altere a palavra-passe depois de iniciar sessão.",
+        )
+    except Exception:
+        current_app.logger.exception("Failed to email password to user %s", user.id)
+        return False
+
+
+@admin_bp.post("/users")
+@master_admin_required
+def add_user():
+    username = request.form.get("username", "").strip().lower()
+    if not username or "@" not in username:
+        flash("Indique um endereço de email válido para o utilizador.", "danger")
+        return redirect(url_for("admin.dashboard"))
+    if RegisterUser.query.filter_by(username=username).first():
+        flash("Já existe um utilizador com esse email.", "warning")
+        return redirect(url_for("admin.dashboard"))
+
+    user = RegisterUser(
+        username=username,
+        is_admin=request.form.get("is_admin") == "on",
+        is_master_admin=request.form.get("is_master_admin") == "on",
+        is_dir_reg=request.form.get("is_dir_reg") == "on",
+        is_can_register=request.form.get("is_can_register") == "on",
+        is_active=True,
+    )
+    password = make_temporary_password()
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+
+    if deliver_user_password(user, password, "criação"):
+        flash("Utilizador criado e palavra-passe enviada por email.", "success")
+    else:
+        flash("Utilizador criado, mas o email não foi enviado. Use Reenviar palavra-passe.", "warning")
+    return redirect(url_for("admin.dashboard"))
+
+
+@admin_bp.post("/users/<int:user_id>/update")
+@master_admin_required
+def update_user(user_id):
+    user = RegisterUser.query.get_or_404(user_id)
+    username = request.form.get("username", "").strip().lower()
+    if not username or "@" not in username:
+        flash("Indique um endereço de email válido para o utilizador.", "danger")
+        return redirect(url_for("admin.dashboard"))
+    existing = RegisterUser.query.filter(
+        RegisterUser.username == username, RegisterUser.id != user.id
+    ).first()
+    if existing:
+        flash("Já existe um utilizador com esse email.", "warning")
+        return redirect(url_for("admin.dashboard"))
+
+    user.username = username
+    user.is_admin = request.form.get("is_admin") == "on"
+    user.is_master_admin = request.form.get("is_master_admin") == "on"
+    user.is_dir_reg = request.form.get("is_dir_reg") == "on"
+    user.is_can_register = request.form.get("is_can_register") == "on"
+    user.is_active = request.form.get("is_active") == "on"
+    db.session.commit()
+    flash("Utilizador atualizado.", "success")
+    return redirect(url_for("admin.dashboard"))
+
+
+@admin_bp.post("/users/<int:user_id>/resend-password")
+@master_admin_required
+def resend_user_password(user_id):
+    user = RegisterUser.query.get_or_404(user_id)
+    old_password_hash = user.password
+    password = make_temporary_password()
+    user.set_password(password)
+    db.session.commit()
+    if deliver_user_password(user, password, "reposição"):
+        flash("Nova palavra-passe enviada ao utilizador.", "success")
+    else:
+        user.password = old_password_hash
+        db.session.commit()
+        flash("O email não foi enviado e a palavra-passe atual foi mantida. Tente novamente.", "warning")
+    return redirect(url_for("admin.dashboard"))
 
 
 @admin_bp.post("/statuses")

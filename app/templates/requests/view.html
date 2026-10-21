@@ -11,6 +11,7 @@
     <div class="card shadow-sm">
       <div class="card-header fw-semibold">Detalhes do Pedido</div>
       <div class="card-body">
+        {% if g.user.is_admin %}<form method="post" action="{{ url_for('requests.update_request_details', request_id=req.id) }}">{% endif %}
         <dl class="row mb-0">
           <dt class="col-sm-3">Criação</dt>
           <dd class="col-sm-9">{{ req.creation.strftime('%Y-%m-%d %H:%M') }}</dd>
@@ -25,16 +26,62 @@
           <dd class="col-sm-9">{{ req.address1 }} <br> {{ req.address2 }} <br> {{ req.zip }} {{ req.city }}</dd>
 
           <dt class="col-sm-3">Contacto</dt>
-          <dd class="col-sm-9">{{ req.contact }} | {{ req.phn }} | {{ req.email or '' }}</dd>
+          <dd class="col-sm-9">
+            {% if g.user.is_admin %}
+            <div class="row g-2">
+              <div class="col-md-4"><input class="form-control form-control-sm" name="contact" value="{{ req.contact }}" aria-label="Contacto" required></div>
+              <div class="col-md-4"><input class="form-control form-control-sm" name="phn" type="tel" value="{{ req.phn }}" aria-label="Telefone" required></div>
+              <div class="col-md-4"><input class="form-control form-control-sm" name="email" type="email" value="{{ req.email or '' }}" aria-label="Email"></div>
+            </div>
+            {% else %}{{ req.contact }} | {{ req.phn }} | {{ req.email or '' }}{% endif %}
+          </dd>
 
           <dt class="col-sm-3">Gestor</dt>
-          <dd class="col-sm-9">{{ req.account_manager }} <> {{ req.account_manager_email or '' }}</dd>
+          <dd class="col-sm-9">
+            {% if g.user.is_admin %}
+            <select class="form-select form-select-sm" name="account_manager_id" aria-label="Gestor de conta" required>
+              <option value="">Escolha o Gestor</option>
+              {% for manager in account_managers %}
+              <option value="{{ manager.id }}" {% if manager.account_manager_email == req.account_manager_email %}selected{% endif %}>{{ manager.account_manager }}</option>
+              {% endfor %}
+            </select>
+            {% else %}{{ req.account_manager }} <> {{ req.account_manager_email or '' }}{% endif %}
+          </dd>
 
           <dt class="col-sm-3">Técnico IT</dt>
-          <dd class="col-sm-9">{{ req.account_it }} {{ req.account_it_email or '' }}</dd>
+          <dd class="col-sm-9">
+            {% if g.user.is_admin %}
+            <select class="form-select form-select-sm" name="account_it_id" aria-label="Técnico IT" required>
+              <option value="">Escolha Técnico</option>
+              {% for tech in techs %}
+              <option value="{{ tech.id }}" {% if tech.tech_user_name == req.account_it and tech.tech_user_email == req.account_it_email %}selected{% endif %}>{{ tech.tech_user_name }}</option>
+              {% endfor %}
+            </select>
+            {% else %}{{ req.account_it }} {{ req.account_it_email or '' }}{% endif %}
+          </dd>
 
           <dt class="col-sm-3">Instalação</dt>
-          <dd class="col-sm-9">{{ req.install_type }} > {{ req.printer_requested }} > Qtd {{ req.printer_requested_qty }}</dd>
+          <dd class="col-sm-9">
+            {% if g.user.is_admin %}
+            <div class="row g-2 align-items-center">
+              <div class="col-md-7">
+                <select class="form-select form-select-sm" name="installation_type_id" aria-label="Tipo de instalação e impressora" required>
+                  <option value="">Tipo de Impressora</option>
+                  {% for installation_type in installation_types %}
+                  <option value="{{ installation_type.id }}" {% if installation_type.printer_type == req.printer_requested and installation_type.installation_type == req.install_type %}selected{% endif %}>{{ installation_type.label }}{% if installation_type.requires_validation %} | requer validação{% endif %}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-5">
+                <select class="form-select form-select-sm" name="printer_requested_qty" aria-label="Quantidade solicitada" required>
+                  {% for quantity in quantities %}
+                  <option value="{{ quantity }}" {% if quantity == req.printer_requested_qty|string %}selected{% endif %}>{{ quantity }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            {% else %}{{ req.install_type }} > {{ req.printer_requested }} > Qtd {{ req.printer_requested_qty }}{% endif %}
+          </dd>
 
           <dt class="col-sm-3">Status</dt>
           <dd class="col-sm-9">
@@ -53,6 +100,7 @@
           <dt class="col-sm-3">Observações</dt>
           <dd class="col-sm-9">{{ req.obs_migracao or '' }}</dd>
         </dl>
+        {% if g.user.is_admin %}<button class="btn btn-primary btn-sm mt-3" type="submit">Guardar dados do pedido</button></form>{% endif %}
       </div>
     </div>
   </div>

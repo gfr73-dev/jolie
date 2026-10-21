@@ -13,7 +13,7 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip().lower()
         password = request.form.get("password", "")
-        user = RegisterUser.query.filter_by(username=username).first()
+        user = RegisterUser.query.filter_by(username=username, is_active=True).first()
         if not user or not user.check_password(password):
             flash("Utilizador ou password inválidos.", "danger")
             return render_template("login.html", username=username)

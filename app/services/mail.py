@@ -37,7 +37,7 @@ def send_mail(to_addresses, subject, body):
         return False
 
     if not current_app.config["SMTP_ENABLED"]:
-        log.info("SMTP disabled. Would send to=%s subject=%s body=%s", recipients, subject, body)
+        log.info("SMTP disabled. Would send to=%s subject=%s", recipients, subject)
         return False
 
     msg = EmailMessage()
@@ -59,7 +59,7 @@ def send_mail(to_addresses, subject, body):
     return True
 
 
-def send_html_mail(to_addresses, subject, html_body):
+def send_html_mail(to_addresses, subject, html_body, text_body=None):
     recipients = [addr for addr in to_addresses if addr]
     if not recipients:
         log.info("HTML email skipped, no recipients. Subject=%s", subject)
@@ -73,7 +73,7 @@ def send_html_mail(to_addresses, subject, html_body):
     msg["From"] = current_app.config["MAIL_FROM"]
     msg["To"] = ", ".join(recipients)
     msg["Subject"] = subject
-    msg.set_content("Este pedido está disponível em formato HTML.")
+    msg.set_content(text_body or "Este pedido está disponível em formato HTML.")
     msg.add_alternative(html_body, subtype="html")
 
     with _DeadlineSMTP(

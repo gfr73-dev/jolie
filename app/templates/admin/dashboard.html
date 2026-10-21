@@ -52,6 +52,11 @@
     <li class="nav-item" role="presentation">
         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#statuses" type="button" role="tab">Status</button>
     </li>
+    {% if g.user.is_master_admin %}
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">Utilizadores</button>
+    </li>
+    {% endif %}
 </ul>
 
 <div class="tab-content">
@@ -224,6 +229,60 @@
             </div>
         </div>
     </div>
+
+    {% if g.user.is_master_admin %}
+    <div class="tab-pane fade" id="users" role="tabpanel">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header fw-semibold">Criar utilizador</div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('admin.add_user') }}">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-4"><input class="form-control" name="username" type="email" placeholder="Email do utilizador" required></div>
+                        <div class="col-md-7">
+                            <div class="d-flex flex-wrap gap-3">
+                                <label class="form-check"><input class="form-check-input" type="checkbox" name="is_admin"><span class="form-check-label">Admin</span></label>
+                                <label class="form-check"><input class="form-check-input" type="checkbox" name="is_master_admin"><span class="form-check-label">Admin principal</span></label>
+                                <label class="form-check"><input class="form-check-input" type="checkbox" name="is_dir_reg"><span class="form-check-label">Direção Regional</span></label>
+                                <label class="form-check"><input class="form-check-input" type="checkbox" name="is_can_register"><span class="form-check-label">Registar pedidos</span></label>
+                            </div>
+                        </div>
+                        <div class="col-md-1"><button class="btn btn-primary w-100" type="submit">+</button></div>
+                    </div>
+                    <div class="form-text mt-2">Será gerada uma palavra-passe aleatória com 10 caracteres e enviada por email.</div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light"><tr><th>Email</th><th>Admin</th><th>Admin principal</th><th>Direção Regional</th><th>Registar pedidos</th><th>Ativo</th><th class="text-end">Ações</th></tr></thead>
+                    <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td><input class="form-control form-control-sm" form="user-update-{{ u.id }}" name="username" type="email" value="{{ u.username }}" required></td>
+                        <td><input class="form-check-input" form="user-update-{{ u.id }}" type="checkbox" name="is_admin" {% if u.is_admin %}checked{% endif %} aria-label="Admin"></td>
+                        <td><input class="form-check-input" form="user-update-{{ u.id }}" type="checkbox" name="is_master_admin" {% if u.is_master_admin %}checked{% endif %} aria-label="Admin principal"></td>
+                        <td><input class="form-check-input" form="user-update-{{ u.id }}" type="checkbox" name="is_dir_reg" {% if u.is_dir_reg %}checked{% endif %} aria-label="Direção Regional"></td>
+                        <td><input class="form-check-input" form="user-update-{{ u.id }}" type="checkbox" name="is_can_register" {% if u.is_can_register %}checked{% endif %} aria-label="Registar pedidos"></td>
+                        <td><input class="form-check-input" form="user-update-{{ u.id }}" type="checkbox" name="is_active" {% if u.is_active %}checked{% endif %} aria-label="Ativo"></td>
+                        <td class="text-end text-nowrap">
+                            <form id="user-update-{{ u.id }}" method="post" action="{{ url_for('admin.update_user', user_id=u.id) }}" class="d-inline"></form>
+                            <button class="btn btn-sm btn-primary" form="user-update-{{ u.id }}" type="submit">Guardar</button>
+                            <form method="post" action="{{ url_for('admin.resend_user_password', user_id=u.id) }}" class="d-inline" onsubmit="return confirm('Gerar e enviar uma nova palavra-passe para este utilizador?');">
+                                <button class="btn btn-sm btn-outline-secondary" type="submit">Reenviar palavra-passe</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="text-center text-muted py-4">Sem utilizadores.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
 </div>
 

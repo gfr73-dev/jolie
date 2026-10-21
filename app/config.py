@@ -73,7 +73,7 @@ class Config:
     SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "false").lower() == "true"
     SMTP_USER = os.getenv("SMTP_USER", "")
     SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-    MAIL_FROM = os.getenv("MAIL_FROM", "metricas.dsi@dpd.pt")
+    MAIL_FROM = os.getenv("MAIL_FROM", "mail.dpdlrsls081@dpd.pt")
 
     ACCOUNT_MANAGERS_RAW = os.getenv(
         "ACCOUNT_MANAGERS",

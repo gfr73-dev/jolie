@@ -14,6 +14,7 @@ class RegisterUser(db.Model):
     is_master_admin = db.Column(db.Boolean, nullable=False, default=False)
     is_dir_reg = db.Column(db.Boolean, nullable=False, default=False)
     is_can_register = db.Column(db.Boolean, nullable=False, default=False)
+    is_active = db.Column(db.Boolean, nullable=False, default=True, server_default=db.true())
 
     def set_password(self, value):
         self.password = generate_password_hash(value)
